@@ -113,6 +113,11 @@ class Client:
         clean_data=True,
     ):
         _LOGGER.info("Requesting asset group data from Qualys...")
+        _LOGGER.debug(
+            f"Args: force_list={force_list} clean_data=[{clean_data}] "
+            f"asset_group_title=[{asset_group_title}] "
+            f"truncation_limit=[{truncation_limit}] show_attributes=[{show_attributes}]"
+        )
         req_data = self._make_list_request(
             "/api/2.0/fo/asset/group/",
             "ASSET_GROUP",
@@ -151,6 +156,10 @@ class Client:
         clean_data=True,
     ):
         _LOGGER.info("Requesting asset group data from Qualys...")
+        _LOGGER.debug(
+            f"Args: force_list={force_list} clean_data=[{clean_data}] "
+            f"truncation_limit=[{truncation_limit}] show_attributes=[{show_attributes}]"
+        )
         req_data = self._make_list_request(
             "/api/2.0/fo/asset/host/",
             "HOST",
@@ -166,10 +175,9 @@ class Client:
         _LOGGER.info(f"Returning data for {len(req_data)} hosts...")
         return req_data
 
-    def list_scan_schedules(
-        self, force_list=["SCAN", "ASSET_GROUP_TITLE"], clean_data=True
-    ):
+    def list_scan_schedules(self, force_list=["ASSET_GROUP_TITLE"], clean_data=True):
         _LOGGER.info("Requesting scan schedule data from Qualys...")
+        _LOGGER.debug(f"Args: force_list=[{force_list}] clean_data=[{clean_data}]")
         scan_schedules = self._make_list_request(
             "/api/2.0/fo/schedule/scan/", "SCHEDULE_SCAN", force_list=force_list
         )
@@ -185,6 +193,10 @@ class Client:
         clean_data=True,
     ):
         _LOGGER.info("Requesting scan data from Qualys...")
+        _LOGGER.debug(
+            f"Args: force_list={force_list} clean_data=[{clean_data}] "
+            f"truncation_limit=[{truncation_limit}] show_attributes=[{show_attributes}]"
+        )
         scan_data = self._make_list_request(
             "/api/2.0/fo/scan/",
             "SCAN",
@@ -217,6 +229,11 @@ class Client:
         output_format=DEFAULT_SCAN_OUTPUT_FORMAT,
         mode=DEFAULT_SCAN_MODE,
     ):
+        _LOGGER.info(f"Getting scan result for scan [{scan_title}]...")
+        _LOGGER.debug(
+            f"Args: scan_title=[{scan_title}] "
+            f"output_format=[{output_format}] mode=[{mode}]"
+        )
         all_scans = self.list_scans()
         scan_ref = None
         for scan in all_scans:
