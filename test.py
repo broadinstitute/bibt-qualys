@@ -1,5 +1,6 @@
-from bibt.qualys import Client
 import os
+
+from bibt.qualys import Client
 
 
 def test_client():

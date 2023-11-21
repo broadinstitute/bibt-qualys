@@ -1,7 +1,8 @@
+import json
+import logging
+
 import requests
 import xmltodict
-import logging
-import json
 
 DEFAULT_TRUNCATION = 1000
 DEFAULT_SCAN_OUTPUT_FORMAT = "json_extended"
