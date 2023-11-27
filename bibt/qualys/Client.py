@@ -3,18 +3,10 @@ import logging
 
 import requests
 import xmltodict
-
-DEFAULT_TRUNCATION = 1000
-DEFAULT_SCAN_RESULT_OUTPUT_FORMAT = "json_extended"
-DEFAULT_SCAN_RESULT_MODE = "extended"
-ASSET_GROUP_ATTRIBUTES_LIST = "ALL"  # Show attributes for each asset group along with
-# the ID. Specify ALL or a comm-separated list of attribute
-# names. Attribute names: ID, TITLE, OWNER_USER_NAME,
-# OWNER_USER_ID, OWNER_UNIT_ID, NETWORK_IDS,
-# LAST_UPDATE, IP_SET, APPLIANCE_LIST, DOMAIN_LIST,
-# DNS_LIST, NETBIOS_LIST, EC2_ID_LIST, asset_group_IDS,
-# ASSIGNED_USER_IDS, ASSIGNED_UNIT_IDS,
-# BUSINESS_IMPACT, CVSS, COMMENTS.
+from params import ASSET_GROUP_ATTRIBUTES_LIST
+from params import DEFAULT_SCAN_RESULT_MODE
+from params import DEFAULT_SCAN_RESULT_OUTPUT_FORMAT
+from params import DEFAULT_TRUNCATION
 
 QUALYS_REPORT_ENDPOINT = "/api/2.0/fo/report/"
 QUALYS_SCAN_ENDPOINT = "/api/2.0/fo/scan/"
@@ -57,6 +49,10 @@ class Client:
         """
         self.session.close()
         self.session = None
+
+    #
+    # Private Helper Functions
+    #
 
     def _handle_request(self, request):
         try:
@@ -309,10 +305,10 @@ class Client:
         :param str scan_ref: The scan reference ID, e.g. ``"scan/123456789.12345"``
         :param str output_format: The output format of the scan results. Must be
             one of: "csv", "json", "csv_extended", "json_extended".
-            Defaults to ``bibt.qualys.DEFAULT_SCAN_RESULT_OUTPUT_FORMAT``.
+            Defaults to ``bibt.qualys.params.DEFAULT_SCAN_RESULT_OUTPUT_FORMAT``.
         :param str mode: Must be one of "brief" or "extended". Specifies the level
             of detail per result for Qualys to return. Defaults to
-            ``bibt.qualys.DEFAULT_SCAN_RESULT_MODE``.
+            ``bibt.qualys.params.DEFAULT_SCAN_RESULT_MODE``.
         :return list OR str: The scan result in the requested output format.
         """
         _LOGGER.info(
@@ -357,10 +353,10 @@ class Client:
         :param str scan_title: The title of the scan, e.g. "VLAN 100 Scan".
         :param str output_format: The output format of the scan results. Must be
             one of: "csv", "json", "csv_extended", "json_extended".
-            Defaults to ``bibt.qualys.DEFAULT_SCAN_RESULT_OUTPUT_FORMAT``.
+            Defaults to ``bibt.qualys.params.DEFAULT_SCAN_RESULT_OUTPUT_FORMAT``.
         :param str mode: Must be one of "brief" or "extended". Specifies the level
             of detail per result for Qualys to return. Defaults to
-            ``bibt.qualys.DEFAULT_SCAN_RESULT_MODE``.
+            ``bibt.qualys.params.DEFAULT_SCAN_RESULT_MODE``.
         :param bool refactor_json_data: Whether or not to refactor "json_extended" scan
             result data into a more organized format. By default, Qualys returns a list
             of dictionaries, where: the first two dictionaries cover request metadata

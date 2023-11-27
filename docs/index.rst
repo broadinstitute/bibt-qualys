@@ -10,9 +10,9 @@ bibt-qualys: BITS Blue Team Utilities: Qualys Module
 
 |build| |docs| |last_commit|
 
-|status| |pypi| |deps|
+|status| |pypi| |top_lang|
 
-|versions| |code_lines| |top_lang| |pypi_installs|
+|versions| |pypi_installs|
 
 .. |pypi| image:: https://img.shields.io/pypi/v/bibt-qualys
    :target: https://pypi.org/project/bibt-qualys/
@@ -23,12 +23,9 @@ bibt-qualys: BITS Blue Team Utilities: Qualys Module
 .. |docs| image:: https://img.shields.io/readthedocs/bibt-qualys
    :target: https://bibt-qualys.readthedocs.io/
 
-.. |build| image:: https://img.shields.io/github/workflow/status/broadinstitute/bibt-qualys/publish%20package%20to%20pypi
+.. |build| image:: https://img.shields.io/github/workflow/status/broadinstitute/bibt-qualys/publish%20to%20pypi
 
 .. |last_commit| image:: https://img.shields.io/github/last-commit/broadinstitute/bibt-qualys
-   :target: https://github.com/broadinstitute/bibt-qualys
-
-.. |code_lines| image:: https://img.shields.io/tokei/lines/github/broadinstitute/bibt-qualys
    :target: https://github.com/broadinstitute/bibt-qualys
 
 .. |pypi_installs| image:: https://img.shields.io/pypi/dm/bibt-qualys?label=pypi%20installs
@@ -55,10 +52,10 @@ Usage Examples
 API Reference
 -------------
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
    :caption: Contents:
 
-   gcp
+   qualys
 
 Contributing
 ------------
