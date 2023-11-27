@@ -78,6 +78,10 @@ class Client:
                 "Cannot make requests via a closed HTTP session! "
                 "Please create a new Client object to initialize a new session."
             )
+        if isinstance(force_list, str):
+            force_list = (force_list,)
+        elif isinstance(force_list, list):
+            force_list = tuple(force_list)
         request_url = self.url + endpoint
         params["action"] = "list"
         full_resp = []
@@ -194,7 +198,7 @@ class Client:
         truncation_limit=DEFAULT_TRUNCATION,
         show_attributes=ASSET_GROUP_ATTRIBUTES_LIST,
         asset_group_title=None,
-        force_list=["IP", "IP_RANGE", "DOMAIN_LIST", "DNS"],
+        force_list=("IP", "IP_RANGE", "DOMAIN_LIST", "DNS"),
         clean_data=True,
     ):
         _LOGGER.info("Requesting asset group data from Qualys...")
@@ -271,12 +275,12 @@ class Client:
     #  /api/2.0/fo/schedule/scan/
     #
 
-    def list_scan_schedules(self, force_list=["ASSET_GROUP_TITLE"]):
+    def list_scan_schedules(self, force_list=("ASSET_GROUP_TITLE",)):
         """List all configured scan schedules in Qualys.
 
-        :param list force_list: A list of keys to force into list format when parsing
+        :param tuple force_list: A tuple of keys to force into list format when parsing
             the returned XML into lists and dictionaries.
-            Defaults to ``["ASSET_GROUP_TITLE"]``.
+            Defaults to ``("ASSET_GROUP_TITLE")``.
         :return list: A list of dicts, containing metadata for all scan schedules.
         """
         _LOGGER.info("Requesting scan schedule data from Qualys...")
@@ -330,7 +334,7 @@ class Client:
 
         :param str state: The state of scans to return. Set to ``None`` to
             return all scans. Defaults to ``"Finished"``.
-        :param list force_list: A list of keys to force into list format when parsing
+        :param tuple force_list: A tuple of keys to force into list format when parsing
             the returned XML into lists and dictionaries. Defaults to ``None``.
         :return list: A list of dicts, containing metadata for all Qualys scans.
         """
@@ -445,7 +449,7 @@ class Client:
 
         :param str state: The state of reports to return. Set to ``None`` to
             return all reports. Defaults to ``"Finished"``.
-        :param list force_list: A list of keys to force into list format when parsing
+        :param tuple force_list: A tuple of keys to force into list format when parsing
             the returned XML into lists and dictionaries. Defaults to ``None``.
         :return list: A list of dicts, containing metadata for all Qualys reports.
         """
@@ -457,10 +461,16 @@ class Client:
         _LOGGER.info(f"Returning data for {len(report_data)} reports...")
         return report_data
 
-    def get_report_result(self, report_title):
+    def get_report_result(
+        self, report_title, force_list=("ASSET_GROUP_TITLE", "VULN_INFO")
+    ):
         """Given a report title, fetches the most recent report result.
 
         :param str report_title: The report title for which to search.
+        :param tuple force_list: A tuple of keys to force into list format when parsing
+            the returned XML into lists and dictionaries. Only relevant when the report
+            format is XML, otherwise this is ignored. Defaults to
+            ``("ASSET_GROUP_TITLE", "VULN_INFO")``.
         :return (str, str): A tuple of ``(output_format, data)`` where
             ``output_format`` is the configured report output format,
             e.g. "XML", "HTML", "CSV", etc.
