@@ -3,10 +3,11 @@ import logging
 
 import requests
 import xmltodict
-from params import ASSET_GROUP_ATTRIBUTES_LIST
-from params import DEFAULT_SCAN_RESULT_MODE
-from params import DEFAULT_SCAN_RESULT_OUTPUT_FORMAT
-from params import DEFAULT_TRUNCATION
+
+from .params import ASSET_GROUP_ATTRIBUTES_LIST
+from .params import DEFAULT_SCAN_RESULT_MODE
+from .params import DEFAULT_SCAN_RESULT_OUTPUT_FORMAT
+from .params import DEFAULT_TRUNCATION
 
 QUALYS_REPORT_ENDPOINT = "/api/2.0/fo/report/"
 QUALYS_SCAN_ENDPOINT = "/api/2.0/fo/scan/"
