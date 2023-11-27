@@ -225,7 +225,7 @@ class Client:
             "mode": mode,
         }
         resp = self._handle_request(self.session.get(request_url, params=params))
-        logging.debug(resp.text)
+        logging.debug(resp.text[: min(len(resp.text), 300)] + "...")
 
         if output_format in ["json", "json_extended"]:
             return resp.json()
@@ -237,7 +237,8 @@ class Client:
         scan_title,
         output_format=DEFAULT_SCAN_RESULT_OUTPUT_FORMAT,
         mode=DEFAULT_SCAN_RESULT_MODE,
-        dont_accept_scan_states=[],
+        dont_accept_scan_states=None,
+        refactor_json_data=True,
     ):
         _LOGGER.info(f"Getting scan result for scan [{scan_title}]...")
         _LOGGER.debug(
@@ -246,11 +247,16 @@ class Client:
         )
         all_scans = self.list_scans()
         scan_ref = None
+        logging.debug(
+            f"Iterating through {len(all_scans)} scans to find right scan_ref..."
+        )
+        if isinstance(dont_accept_scan_states, list):
+            dont_accept_scan_states.extend(["Pending", "Running"])
+        else:
+            dont_accept_scan_states = ["Pending", "Running"]
         for scan in all_scans:
             if scan["TITLE"] == scan_title:
-                if scan["STATUS"]["STATE"] in ["Pending", "Running"].extend(
-                    dont_accept_scan_states
-                ):
+                if scan["STATUS"]["STATE"] in dont_accept_scan_states:
                     logging.debug(
                         "Matching scan found, but has state: "
                         f'[{scan["STATUS"]["STATE"]}] ref: [{scan["REF"]}]  '
@@ -268,9 +274,33 @@ class Client:
         if not scan_ref:
             raise Exception(f"No scan found for title: [{scan_title}]")
 
-        return self._get_scanref_result(
+        scan_data = self._get_scanref_result(
             scan_ref, output_format=output_format, mode=mode
         )
+        if (
+            output_format == "json_extended"
+            and refactor_json_data
+            and len(scan_data) >= 3
+        ):
+            if (
+                "target_distribution_across_scanner_appliances" in scan_data[-1]
+                or "hosts_not_scanned_host_not_alive_ip" in scan_data[-1]
+                or "no_vulnerabilities_match_your_filters_for_these_hosts"
+                in scan_data[-1]
+            ):
+                return {
+                    "request_metadata": scan_data[0],
+                    "scan_metadata": scan_data[1],
+                    "scan_notes": scan_data[-1],
+                    "results": scan_data[2:-1],
+                }
+            else:
+                return {
+                    "request_metadata": scan_data[0],
+                    "scan_metadata": scan_data[1],
+                    "results": scan_data[2:],
+                }
+        return scan_data
 
     def delete_scan_result(self, scan_ref):
         _LOGGER.info(f"Sending delete request for scan: [{scan_ref}]")

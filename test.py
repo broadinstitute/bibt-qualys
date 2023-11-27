@@ -1,7 +1,24 @@
 import os
 import json
 from bibt.qualys import Client
+import logging
+import sys
 
+logging.basicConfig(
+    level=logging.DEBUG,
+    stream=sys.stdout,
+    # filename="out.log",
+    format=(
+        "[%(asctime)s] "
+        # '%(name)s | ' # logger name
+        "%(levelname)s "
+        "<%(module)s:%(funcName)s:%(lineno)s>:	"
+        "%(message)s"
+    ),
+    force=True,
+)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("google").setLevel(logging.WARNING)
 
 # def test_client(capsys):
 #     with capsys.disabled():
@@ -44,6 +61,6 @@ def test_get_scan_result(capsys):
             os.environ["QUALYS_PASS"],
             os.environ["QUALYS_URL"],
         )
-        scan = c.get_scan_result(os.environ["TEST_SCAN_TITLE"])
-        with open("test.json", "w+") as outfile:
+        scan = c.get_scan_result(os.environ["TEST_SCAN_TITLE"], output_format="json")
+        with open("test_json.json", "w+") as outfile:
             json.dump(scan, outfile, indent=2)
