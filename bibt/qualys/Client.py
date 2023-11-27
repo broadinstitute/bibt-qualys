@@ -16,6 +16,12 @@ ASSET_GROUP_ATTRIBUTES_LIST = "ALL"  # Show attributes for each asset group alon
 # ASSIGNED_USER_IDS, ASSIGNED_UNIT_IDS,
 # BUSINESS_IMPACT, CVSS, COMMENTS.
 
+QUALYS_REPORT_ENDPOINT = "/api/2.0/fo/report/"
+QUALYS_SCAN_ENDPOINT = "/api/2.0/fo/scan/"
+QUALYS_SCAN_SCHEDULE_ENDPOINT = "/api/2.0/fo/schedule/scan/"
+QUALYS_ASSET_GROUP_ENDPOINT = "/api/2.0/fo/asset/group/"
+QUALYS_ASSET_HOST_ENDPOINT = "/api/2.0/fo/asset/host/"
+QUALYS_CLOUD_AGENT_SEARCH_HOST_ASSET_ENDPOINT = "/qps/rest/2.0/search/am/hostasset"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,15 +30,16 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class Client:
-    def __init__(self, user, password, url):
-        """Creates a bibt.qualys.Client object, which may be used to
-        make Qualys API calls using the same set of credentials.
+    """Creates a ``bibt.qualys.Client`` object, which may be used to
+    make Qualys API calls using the same set of credentials.
 
-        :param str user: The Qualys username with which to authenticate.
-        :param str password: The password for the provided account username.
-        :param str url: The root domain for Qualys, e.g.
-            ``"https://qualysapi.qg1.apps.qualys.com"``.
-        """
+    :param str user: The Qualys username with which to authenticate.
+    :param str password: The password for the provided account username.
+    :param str url: The root domain for Qualys, e.g.
+        ``"https://qualysapi.qg1.apps.qualys.com"``.
+    """
+
+    def __init__(self, user, password, url):
         self.session = requests.Session()
         self.session.auth = (user, password)
         self.session.headers.update(
@@ -82,7 +89,7 @@ class Client:
             _LOGGER.debug(f"Request params: {params}")
             resp = self._handle_request(self.session.get(request_url, params=params))
             resp_json = xmltodict.parse(
-                resp.text,
+                resp.content,
                 attr_prefix="",
                 cdata_key="text",
                 comment_key="comment",
@@ -94,6 +101,15 @@ class Client:
             if key == "SCHEDULE_SCAN":
                 final_key = "SCAN"
 
+            if f"{key}_LIST" not in resp_json[f"{key}_LIST_OUTPUT"]["RESPONSE"]:
+                if len(full_resp) < 1:
+                    _LOGGER.error(
+                        f"Key {key}_LIST not found in data from Qualys; ensure "
+                        "you have the correct permissions to fetch this data."
+                    )
+                    return []
+                else:
+                    break
             resp_json_data = resp_json[f"{key}_LIST_OUTPUT"]["RESPONSE"][f"{key}_LIST"][
                 final_key
             ]
@@ -108,6 +124,22 @@ class Client:
                 request_url = None
         return full_resp
 
+    def _make_fetch_request(self, endpoint, params={}):
+        if not self.session:
+            raise Exception(
+                "Cannot make requests via a closed HTTP session! "
+                "Please create a new Client object to initialize a new session."
+            )
+        request_url = self.url + endpoint
+        params["action"] = "fetch"
+        resp = self._handle_request(self.session.get(request_url, params=params))
+        # logging.debug(str(resp.content[: min(len(resp.content), 300)] + b"..."))
+
+        if params.get("output_format") in ["json", "json_extended"]:
+            return resp.json()
+        else:
+            return resp.text
+
     def _make_delete_request(self, endpoint, id):
         if not self.session:
             raise Exception(
@@ -121,6 +153,44 @@ class Client:
             )
         )
         return resp
+
+    def _list_scans_reports(self, endpoint, key, state, force_list):
+        params = {}
+        if state:
+            params["state"] = state
+        return self._make_list_request(
+            endpoint,
+            key,
+            params=params,
+            force_list=force_list,
+        )
+
+    def _match_results(self, all_results, title, result_type):
+        ref = None
+        ref_key = "REF" if result_type == "SCAN" else "ID"
+        logging.debug(
+            f"Iterating through {len(all_results)} results to find right "
+            f"ref/id for result titled [{title}]..."
+        )
+        for result in all_results:
+            if result["TITLE"] == title:
+                logging.info(
+                    "Matching result found! ref: "
+                    f'[{result[ref_key]}] state: [{result["STATUS"]["STATE"]}] '
+                    f'launched: [{result["LAUNCH_DATETIME"]}]'
+                )
+                return result
+
+        if not ref:
+            raise Exception(
+                f"No result found for title: [{title}] "
+                f"in {len(all_results)} results."
+            )
+
+    #
+    #  Asset: Groups Endpoint
+    #  /api/2.0/fo/asset/groups
+    #
 
     def list_asset_groups(
         self,
@@ -143,7 +213,7 @@ class Client:
         if asset_group_title:
             params["title"] = asset_group_title
         resp = self._make_list_request(
-            "/api/2.0/fo/asset/group/",
+            QUALYS_ASSET_GROUP_ENDPOINT,
             "ASSET_GROUP",
             params=params,
             force_list=force_list,
@@ -170,6 +240,11 @@ class Client:
         _LOGGER.info(f"Returning data for {len(resp)} asset groups...")
         return resp
 
+    #
+    #  Asset: Host Endpoint
+    #  /api/2.0/fo/asset/host
+    #
+
     def list_hosts(
         self,
         truncation_limit=DEFAULT_TRUNCATION,
@@ -182,7 +257,7 @@ class Client:
             f"truncation_limit=[{truncation_limit}] show_attributes=[{show_attributes}]"
         )
         resp = self._make_list_request(
-            "/api/2.0/fo/asset/host/",
+            QUALYS_ASSET_HOST_ENDPOINT,
             "HOST",
             params={
                 "truncation_limit": truncation_limit,
@@ -193,6 +268,11 @@ class Client:
 
         _LOGGER.info(f"Returning data for {len(resp)} hosts...")
         return resp
+
+    #
+    #  Scan Schedules Endpoint
+    #  /api/2.0/fo/schedule/scan/
+    #
 
     def list_scan_schedules(self, force_list=["ASSET_GROUP_TITLE"]):
         """List all configured scan schedules in Qualys.
@@ -205,7 +285,7 @@ class Client:
         _LOGGER.info("Requesting scan schedule data from Qualys...")
         _LOGGER.debug(f"Args: force_list=[{force_list}]")
         scan_schedules = self._make_list_request(
-            "/api/2.0/fo/schedule/scan/",
+            QUALYS_SCAN_SCHEDULE_ENDPOINT,
             "SCHEDULE_SCAN",
             force_list=force_list,
         )
@@ -213,26 +293,10 @@ class Client:
         _LOGGER.info(f"Returning data for {len(scan_schedules)} scan schedules...")
         return scan_schedules
 
-    def list_scans(
-        self,
-        force_list=None,
-    ):
-        """List all scans in Qualys.
-
-        :param list force_list: A list of keys to force into list format when parsing
-            the returned XML into lists and dictionaries. Defaults to ``None``.
-        :return list: A list of dicts, containing metadata for all Qualys scans.
-        """
-        # TODO: looping for all scans? limit?
-        _LOGGER.info("Requesting scan data from Qualys...")
-        _LOGGER.debug(f"Args: force_list={force_list}")
-        scan_data = self._make_list_request(
-            "/api/2.0/fo/scan/",
-            "SCAN",
-            force_list=force_list,
-        )
-        _LOGGER.info(f"Returning data for {len(scan_data)} scans...")
-        return scan_data
+    #
+    #  Scan Endpoint
+    #  /api/2.0/fo/scan/
+    #
 
     def _get_scanref_result(
         self,
@@ -251,28 +315,41 @@ class Client:
             ``bibt.qualys.DEFAULT_SCAN_RESULT_MODE``.
         :return list OR str: The scan result in the requested output format.
         """
-        # TODO: fetch req func
-        request_url = self.url + "/api/2.0/fo/scan/"
-        params = {
-            "action": "fetch",
-            "scan_ref": scan_ref,
-            "output_format": output_format,
-            "mode": mode,
-        }
-        resp = self._handle_request(self.session.get(request_url, params=params))
-        logging.debug(resp.text[: min(len(resp.text), 300)] + "...")
+        _LOGGER.info(
+            f"Getting results for: [{scan_ref}] in format "
+            f"[{output_format}] in mode [{mode}]"
+        )
+        return self._make_fetch_request(
+            QUALYS_SCAN_ENDPOINT,
+            params={"output_format": output_format, "mode": mode, "scan_ref": scan_ref},
+        )
 
-        if output_format in ["json", "json_extended"]:
-            return resp.json()
-        else:
-            return resp.text
+    def list_scans(
+        self,
+        state="Finished",
+        force_list=None,
+    ):
+        """List all scans in Qualys.
+
+        :param str state: The state of scans to return. Set to ``None`` to
+            return all scans. Defaults to ``"Finished"``.
+        :param list force_list: A list of keys to force into list format when parsing
+            the returned XML into lists and dictionaries. Defaults to ``None``.
+        :return list: A list of dicts, containing metadata for all Qualys scans.
+        """
+        _LOGGER.info("Requesting scan data from Qualys...")
+        _LOGGER.debug(f"Args: state={state} force_list={force_list}")
+        scan_data = self._list_scans_reports(
+            QUALYS_SCAN_ENDPOINT, "SCAN", state, force_list
+        )
+        _LOGGER.info(f"Returning data for {len(scan_data)} scans...")
+        return scan_data
 
     def get_scan_result(
         self,
         scan_title,
         output_format=DEFAULT_SCAN_RESULT_OUTPUT_FORMAT,
         mode=DEFAULT_SCAN_RESULT_MODE,
-        accept_scan_states=None,
         refactor_json_data=True,
     ):
         """Given a scan title, will fetch the most recent scan result.
@@ -284,11 +361,6 @@ class Client:
         :param str mode: Must be one of "brief" or "extended". Specifies the level
             of detail per result for Qualys to return. Defaults to
             ``bibt.qualys.DEFAULT_SCAN_RESULT_MODE``.
-        :param list accept_scan_states: A list of scan statuses to accept,
-            in addition to "Finished". Other potential scan states are:
-            "Queued", "Running", "Loading", "Canceling", "Canceled", "Pausing",
-            "Paused", "Resuming", and "Error". Note that it may not be possible to
-            get results for any or all of these other scan states. Defaults to ``None``.
         :param bool refactor_json_data: Whether or not to refactor "json_extended" scan
             result data into a more organized format. By default, Qualys returns a list
             of dictionaries, where: the first two dictionaries cover request metadata
@@ -306,37 +378,13 @@ class Client:
             f"Args: scan_title=[{scan_title}] "
             f"output_format=[{output_format}] mode=[{mode}]"
         )
-        all_scans = self.list_scans()
-        scan_ref = None
-        logging.debug(
-            f"Iterating through {len(all_scans)} scans to find right scan_ref..."
-        )
-        if isinstance(accept_scan_states, list):
-            accept_scan_states.extend(["Finished"])
-        else:
-            accept_scan_states = ["Finished"]
-        for scan in all_scans:
-            if scan["TITLE"] == scan_title:
-                if scan["STATUS"]["STATE"] in accept_scan_states:
-                    logging.debug(
-                        "Matching scan found! ref: "
-                        f'[{scan["REF"]}] state: [{scan["STATUS"]["STATE"]}] '
-                        f'launched: [{scan["LAUNCH_DATETIME"]}]'
-                    )
-                    scan_ref = scan["REF"]
-                    break
-                else:
-                    logging.debug(
-                        "Matching scan found, but has state: "
-                        f'[{scan["STATUS"]["STATE"]}] ref: [{scan["REF"]}]  '
-                        f'launched: [{scan["LAUNCH_DATETIME"]}]'
-                    )
 
-        if not scan_ref:
-            raise Exception(f"No scan found for title: [{scan_title}]")
+        all_scans = self.list_scans(state="Finished")
+
+        scan = self._match_results(all_scans, scan_title, "SCAN")
 
         scan_data = self._get_scanref_result(
-            scan_ref, output_format=output_format, mode=mode
+            scan["REF"], output_format=output_format, mode=mode
         )
         if (
             output_format == "json_extended"
@@ -369,11 +417,84 @@ class Client:
         :param str scan_ref: The scan reference ID, e.g. ``"scan/123456789.12345"``
         """
         _LOGGER.info(f"Sending delete request for scan: [{scan_ref}]")
-        self._make_delete_request("/api/2.0/fo/scan/", scan_ref)
+        self._make_delete_request(QUALYS_SCAN_ENDPOINT, scan_ref)
         _LOGGER.info(f"Scan [{scan_ref}] deleted.")
 
-    # def get_report(self, report_title):
-    # def get_kb(self)
+    #
+    # Reports Endpoint
+    # /api/2.0/fo/report/
+    #
+
+    def _get_reportid_result(self, report_id):
+        """Provided a report ID, fetches the report result from Qualys.
+            Report MUST have a state of "Finished".
+
+        :param str report_id: The report ID, e.g. ``"123456"``.
+        :return list OR str: The report result.
+        """
+        _LOGGER.info(f"Getting results for report: [{report_id}]")
+        report_data = self._make_fetch_request(
+            QUALYS_REPORT_ENDPOINT,
+            params={"id": report_id},
+        )
+        return report_data
+
+    def list_reports(
+        self,
+        state="Finished",
+        force_list=None,
+    ):
+        """List all reports in Qualys.
+
+        :param str state: The state of reports to return. Set to ``None`` to
+            return all reports. Defaults to ``"Finished"``.
+        :param list force_list: A list of keys to force into list format when parsing
+            the returned XML into lists and dictionaries. Defaults to ``None``.
+        :return list: A list of dicts, containing metadata for all Qualys reports.
+        """
+        _LOGGER.info("Requesting report data from Qualys...")
+        _LOGGER.debug(f"Args: state={state} force_list={force_list}")
+        report_data = self._list_scans_reports(
+            QUALYS_REPORT_ENDPOINT, "REPORT", state, force_list
+        )
+        _LOGGER.info(f"Returning data for {len(report_data)} reports...")
+        return report_data
+
+    def get_report_result(self, report_title):
+        """Given a report title, fetches the most recent report result.
+
+        :param str report_title: The report title for which to search.
+        :return (str, str): A tuple of ``(output_format, data)`` where
+            ``output_format`` is the configured report output format,
+            e.g. "XML", "HTML", "CSV", etc.
+        """
+        _LOGGER.info(f"Searching for result for report: [{report_title}]")
+        all_reports = self.list_reports(state="Finished")
+        report = self._match_results(all_reports, report_title, "REPORT")
+        _LOGGER.debug(
+            f"Fetching report result: id=[{report['ID']}] type="
+            f"[{report['OUTPUT_FORMAT']}] size=[{report['SIZE']}]"
+        )
+        report_data = self._get_reportid_result(report["ID"])
+        _LOGGER.info(
+            f"Returning data for report [{report_title}] "
+            f"[{report['ID']}] in format [{report['OUTPUT_FORMAT']}]"
+        )
+        return report["OUTPUT_FORMAT"], report_data
+
+    def delete_report_result(self, report_id):
+        """Deletes a report result from Qualys by its ID.
+
+        :param str report_id: The report reference ID, e.g. ``"report/123456789.12345"``
+        """
+        _LOGGER.info(f"Sending delete request for report: [{report_id}]")
+        self._make_delete_request(QUALYS_REPORT_ENDPOINT, report_id)
+        _LOGGER.info(f"Report [{report_id}] deleted.")
+
+    #
+    # Cloud Agent: Host Asset Endpoint
+    # /qps/rest/2.0/search/am/hostasset
+    #
 
     def search_hostassets(self, data, clean_data=True):
         # TODO: data cleaning?
@@ -384,7 +505,7 @@ class Client:
             )
 
         _LOGGER.info("Requesting host asset data from Qualys...")
-        request_url = self.url + "/qps/rest/2.0/search/am/hostasset"
+        request_url = self.url + QUALYS_CLOUD_AGENT_SEARCH_HOST_ASSET_ENDPOINT
         _LOGGER.debug(f"Request url: {request_url}")
         resp = self._handle_request(
             self.session.post(
