@@ -7,7 +7,7 @@ import xmltodict
 DEFAULT_TRUNCATION = 1000
 DEFAULT_SCAN_RESULT_OUTPUT_FORMAT = "json_extended"
 DEFAULT_SCAN_RESULT_MODE = "extended"
-ATTRIBUTES_LIST = "ALL"  # Show attributes for each asset group along with
+ASSET_GROUP_ATTRIBUTES_LIST = "ALL"  # Show attributes for each asset group along with
 # the ID. Specify ALL or a comm-separated list of attribute
 # names. Attribute names: ID, TITLE, OWNER_USER_NAME,
 # OWNER_USER_ID, OWNER_UNIT_ID, NETWORK_IDS,
@@ -125,7 +125,7 @@ class Client:
     def list_asset_groups(
         self,
         truncation_limit=DEFAULT_TRUNCATION,
-        show_attributes=ATTRIBUTES_LIST,
+        show_attributes=ASSET_GROUP_ATTRIBUTES_LIST,
         asset_group_title=None,
         force_list=["IP", "IP_RANGE", "DOMAIN_LIST", "DNS"],
         clean_data=True,
@@ -173,7 +173,7 @@ class Client:
     def list_hosts(
         self,
         truncation_limit=DEFAULT_TRUNCATION,
-        show_attributes=ATTRIBUTES_LIST,
+        show_attributes=ASSET_GROUP_ATTRIBUTES_LIST,
         force_list=None,
     ):
         _LOGGER.info("Requesting asset group data from Qualys...")

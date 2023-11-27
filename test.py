@@ -1,8 +1,9 @@
-import os
 import json
-from bibt.qualys import Client
 import logging
+import os
 import sys
+
+from bibt.qualys import Client
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -12,7 +13,7 @@ logging.basicConfig(
         "[%(asctime)s] "
         # '%(name)s | ' # logger name
         "%(levelname)s "
-        "<%(module)s:%(funcName)s:%(lineno)s>:	"
+        "<%(module)s:%(funcName)s:%(lineno)s>:  "
         "%(message)s"
     ),
     force=True,
