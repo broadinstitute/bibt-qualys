@@ -280,7 +280,7 @@ class Client:
 
         :param tuple force_list: A tuple of keys to force into list format when parsing
             the returned XML into lists and dictionaries.
-            Defaults to ``("ASSET_GROUP_TITLE")``.
+            Defaults to ``("ASSET_GROUP_TITLE",)``.
         :return list: A list of dicts, containing metadata for all scan schedules.
         """
         _LOGGER.info("Requesting scan schedule data from Qualys...")
