@@ -1,14 +1,9 @@
 [build-system]
-requires = ["hatchling"]
 build-backend = "hatchling.build"
+requires = ["hatchling", "xmltodict"]
 
 [project]
-name = "bibt-qualys"
-version = "0.0.13"
-authors = [{ name = "Matthew OBrien", email = "mobrien@broadinstitute.org" }]
-description = "Functionality often used by BITS Blue Team (Qualys)."
-readme = { file = "README.md", content-type = "text/markdown" }
-requires-python = ">=3.7"
+authors = [{name = "Matthew OBrien", email = "mobrien@broadinstitute.org"}]
 classifiers = [
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
@@ -22,9 +17,14 @@ classifiers = [
   "Topic :: Software Development :: Libraries",
   "Topic :: Utilities",
 ]
-dependencies = ["requests", "xmltodict"]
+dependencies = ["requests", "xmltodict", "glom"]
+description = "Functionality often used by BITS Blue Team (Qualys)."
+name = "bibt-qualys"
+readme = {file = "README.md", content-type = "text/markdown"}
+requires-python = ">=3.7"
+version = "0.0.13"
 
 [project.urls]
-"Homepage" = "https://github.com/broadinstitute/bibt-qualys"
-"Documentation" = "https://bibt-qualys.readthedocs.io/en/latest/"
 "Bug Tracker" = "https://github.com/broadinstitute/bibt-qualys/issues"
+"Documentation" = "https://bibt-qualys.readthedocs.io/en/latest/"
+"Homepage" = "https://github.com/broadinstitute/bibt-qualys"

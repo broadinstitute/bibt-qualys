@@ -1,6 +1,7 @@
 import json
 import logging
 
+import glom
 import requests
 import xmltodict
 
@@ -10,6 +11,7 @@ from .params import DEFAULT_SCAN_RESULT_OUTPUT_FORMAT
 from .params import DEFAULT_TRUNCATION
 
 QUALYS_REPORT_ENDPOINT = "/api/2.0/fo/report/"
+QUALYS_REPORT_XML_PATH = "ASSET_DATA_REPORT.HOST_LIST.HOST"
 QUALYS_SCAN_ENDPOINT = "/api/2.0/fo/scan/"
 QUALYS_SCAN_SCHEDULE_ENDPOINT = "/api/2.0/fo/schedule/scan/"
 QUALYS_ASSET_GROUP_ENDPOINT = "/api/2.0/fo/asset/group/"
@@ -65,6 +67,13 @@ class Client:
         _LOGGER.debug(f"Status: [{request.status_code}]")
         return request
 
+    def _fix_force_list(force_list):
+        if isinstance(force_list, str):
+            return (force_list,)
+        elif isinstance(force_list, list):
+            return tuple(force_list)
+        return force_list
+
     def _make_list_request(
         self,
         endpoint,
@@ -78,12 +87,13 @@ class Client:
                 "Cannot make requests via a closed HTTP session! "
                 "Please create a new Client object to initialize a new session."
             )
-        if isinstance(force_list, str):
-            force_list = (force_list,)
-        elif isinstance(force_list, list):
-            force_list = tuple(force_list)
         request_url = self.url + endpoint
         params["action"] = "list"
+        # handle special case of final key being different
+        final_key = key
+        if key == "SCHEDULE_SCAN":
+            final_key = "SCAN"
+
         full_resp = []
         while request_url:
             _LOGGER.debug(f"Request URL: {request_url}")
@@ -91,38 +101,28 @@ class Client:
             resp = self._handle_request(self.session.get(request_url, params=params))
             resp_json = xmltodict.parse(
                 resp.content,
-                attr_prefix="",
-                cdata_key="text",
-                comment_key="comment",
-                force_list=force_list,
+                xml_attribs=False,
+                process_comments=False,
+                force_cdata=False,
+                force_list=self._fix_force_list(force_list),
             )
 
-            # handle special case of final key being different
-            final_key = key
-            if key == "SCHEDULE_SCAN":
-                final_key = "SCAN"
-
-            if f"{key}_LIST" not in resp_json[f"{key}_LIST_OUTPUT"]["RESPONSE"]:
+            resp_json_data = glom(
+                resp_json, f"{key}_LIST_OUTPUT.RESPONSE.{key}_LIST.{final_key}"
+            )
+            if not resp_json_data:
                 if len(full_resp) < 1:
                     _LOGGER.error(
-                        f"Key {key}_LIST not found in data from Qualys; ensure "
+                        f"Key '{key}_LIST' not found in data from Qualys; ensure "
                         "you have the correct permissions to fetch this data."
                     )
                     return []
                 else:
                     break
-            resp_json_data = resp_json[f"{key}_LIST_OUTPUT"]["RESPONSE"][f"{key}_LIST"][
-                final_key
-            ]
             _LOGGER.debug(f"Extending list of type {key} by {len(resp_json_data)}...")
             full_resp.extend(resp_json_data)
-            try:
-                params = None
-                request_url = resp_json[f"{key}_LIST_OUTPUT"]["RESPONSE"]["WARNING"][
-                    "URL"
-                ]
-            except KeyError:
-                request_url = None
+            params = None
+            request_url = glom(resp_json, f"{key}_LIST_OUTPUT.RESPONSE.WARNING.URL")
         return full_resp
 
     def _make_fetch_request(self, endpoint, params={}):
@@ -177,7 +177,7 @@ class Client:
             if result["TITLE"] == title:
                 logging.info(
                     "Matching result found! ref: "
-                    f'[{result[ref_key]}] state: [{result["STATUS"]["STATE"]}] '
+                    f'[{result[ref_key]}] state: [{glom(result, "STATUS.STATE")}] '
                     f'launched: [{result["LAUNCH_DATETIME"]}]'
                 )
                 return result
@@ -462,15 +462,20 @@ class Client:
         return report_data
 
     def get_report_result(
-        self, report_title, force_list=("ASSET_GROUP_TITLE", "VULN_INFO")
+        self,
+        report_title,
+        parse_xml_to_json=True,
+        force_list=("ASSET_GROUP_TITLE", "VULN_INFO"),
     ):
         """Given a report title, fetches the most recent report result.
 
         :param str report_title: The report title for which to search.
+        :param bool parse_xml_to_json: Whether or not to parse an XML report to JSON. If
+            the report is in any other format, this is ignored.
         :param tuple force_list: A tuple of keys to force into list format when parsing
             the returned XML into lists and dictionaries. Only relevant when the report
-            format is XML, otherwise this is ignored. Defaults to
-            ``("ASSET_GROUP_TITLE", "VULN_INFO")``.
+            format is XML and ``parse_xml_to_json==True``, otherwise this is ignored.
+            Defaults to ``("ASSET_GROUP_TITLE", "VULN_INFO")``.
         :return (str, str): A tuple of ``(output_format, data)`` where
             ``output_format`` is the configured report output format,
             e.g. "XML", "HTML", "CSV", etc.
@@ -478,16 +483,34 @@ class Client:
         _LOGGER.info(f"Searching for result for report: [{report_title}]")
         all_reports = self.list_reports(state="Finished")
         report = self._match_results(all_reports, report_title, "REPORT")
+        report_id = report["ID"]
+        output_format = report["OUTPUT_FORMAT"]
         _LOGGER.debug(
-            f"Fetching report result: id=[{report['ID']}] type="
-            f"[{report['OUTPUT_FORMAT']}] size=[{report['SIZE']}]"
+            f"Fetching report result: id=[{report_id}] type="
+            f"[{output_format}] size=[{report['SIZE']}]"
         )
-        report_data = self._get_reportid_result(report["ID"])
+        report_data = self._get_reportid_result(report_id)
+        if parse_xml_to_json and output_format == "XML":
+            logging.info(
+                "Parsing XML report to JSON because "
+                f"parse_xml_to_json==[{parse_xml_to_json}]"
+            )
+            report_data = xmltodict.parse(
+                report_data,
+                xml_attribs=False,
+                process_comments=False,
+                force_cdata=False,
+                force_list=self._fix_force_list(force_list),
+            )
+            report_data = glom(report_data, QUALYS_REPORT_XML_PATH)
+            if not report_data:
+                report_data = []
+            output_format = "JSON"
         _LOGGER.info(
             f"Returning data for report [{report_title}] "
-            f"[{report['ID']}] in format [{report['OUTPUT_FORMAT']}]"
+            f"[{report_id}] in format [{output_format}]"
         )
-        return report["OUTPUT_FORMAT"], report_data
+        return output_format, report_data
 
     def delete_report_result(self, report_id):
         """Deletes a report result from Qualys by its ID.
@@ -519,8 +542,7 @@ class Client:
                 request_url, headers={"Accept": "application/json"}, data=data
             )
         )
-        _LOGGER.debug(resp.text)
-        resp_json = resp.json()["ServiceResponse"]["data"]
+        resp_json = glom(resp.json(), "ServiceResponse.data")
         host_assets = []
         for host_asset in resp_json:
             if clean_data:
