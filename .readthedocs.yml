@@ -7,8 +7,10 @@ version: 2
 
 python:
   install:
-    - xmltodict
-    - glom
+    - method: pip
+      path: xmltodict
+    - method: pip
+      path: glom
 
 # Optionally build your docs in additional formats such as PDF
 formats:
