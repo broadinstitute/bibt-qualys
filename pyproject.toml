@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "hatchling.build"
-requires = ["hatchling", "xmltodict"]
+requires = ["hatchling", "xmltodict", "glom"]
 
 [project]
 authors = [{name = "Matthew OBrien", email = "mobrien@broadinstitute.org"}]
