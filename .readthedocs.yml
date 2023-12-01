@@ -5,6 +5,11 @@
 # Required
 version: 2
 
+python:
+  install:
+    - xmltodict
+    - glom
+
 # Optionally build your docs in additional formats such as PDF
 formats:
   - htmlzip
