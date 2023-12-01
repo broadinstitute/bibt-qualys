@@ -7,10 +7,7 @@ version: 2
 
 python:
   install:
-    - method: pip
-      path: xmltodict
-    - method: pip
-      path: glom
+    - requirements: requirements.txt
 
 # Optionally build your docs in additional formats such as PDF
 formats:
