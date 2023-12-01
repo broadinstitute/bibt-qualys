@@ -8,14 +8,11 @@ bibt-qualys: BITS Blue Team Utilities: Qualys Module
 -  **Project Documentation**: https://bibt-qualys.readthedocs.io/en/latest/
 
 
-|build| |docs| |last_commit|
+|docs| |last_commit|
 
 |status| |pypi| |top_lang|
 
 |versions| |pypi_installs|
-
-.. |pypi| image:: https://img.shields.io/pypi/v/bibt-qualys
-   :target: https://pypi.org/project/bibt-qualys/
 
 .. |versions| image:: https://img.shields.io/pypi/pyversions/bibt-qualys
    :target: https://pypi.org/project/bibt-qualys/
