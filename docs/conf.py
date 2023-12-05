@@ -13,13 +13,15 @@ import sys
 sys.path.insert(0, os.path.abspath(".."))
 sys.path.insert(0, os.path.abspath("."))
 
+from bibt.qualys import __version__  # noqa: E402
 
 # -- Project information -----------------------------------------------------
 
 project = "bibt-qualys"
 copyright = "2023, Matthew OBrien"
 author = "Matthew OBrien"
-
+version = __version__
+release = version
 
 # -- General configuration ---------------------------------------------------
 
