@@ -7,30 +7,27 @@ bibt-qualys: BITS Blue Team Utilities: Qualys Module
 -  **Project Repo**: https://github.com/broadinstitute/bibt-qualys
 -  **Project Documentation**: https://bibt-qualys.readthedocs.io/en/latest/
 
-
 |docs| |last_commit|
 
-|status| |pypi| |top_lang|
+|status| |top_lang|
 
 |versions| |pypi_installs|
-
-.. |versions| image:: https://img.shields.io/pypi/pyversions/bibt-qualys
-   :target: https://pypi.org/project/bibt-qualys/
 
 .. |docs| image:: https://img.shields.io/readthedocs/bibt-qualys
    :target: https://bibt-qualys.readthedocs.io/
 
-.. |build| image:: https://img.shields.io/github/workflow/status/broadinstitute/bibt-qualys/publish%20to%20pypi
-
 .. |last_commit| image:: https://img.shields.io/github/last-commit/broadinstitute/bibt-qualys
    :target: https://github.com/broadinstitute/bibt-qualys
 
-.. |pypi_installs| image:: https://img.shields.io/pypi/dm/bibt-qualys?label=pypi%20installs
-   :target: https://pypi.org/project/bibt-qualys/
+.. |status| image:: https://img.shields.io/badge/status-beta-orange
 
 .. |top_lang| image:: https://img.shields.io/github/languages/top/broadinstitute/bibt-qualys
 
-.. |status| image:: https://img.shields.io/badge/status-beta-orange
+.. |versions| image:: https://img.shields.io/pypi/pyversions/bibt-qualys
+   :target: https://pypi.org/project/bibt-qualys/
+
+.. |pypi_installs| image:: https://img.shields.io/pypi/dm/bibt-qualys?label=pypi%20installs
+   :target: https://pypi.org/project/bibt-qualys/
 
 Installing
 ----------
