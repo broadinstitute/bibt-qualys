@@ -17,7 +17,7 @@ classifiers = [
   "Topic :: Software Development :: Libraries",
   "Topic :: Utilities",
 ]
-dependencies = ["requests", "xmltodict", "glom"]
+dependencies = ["requests==2.31.0", "xmltodict==0.13.0", "glom==23.5.0"]
 description = "Functionality often used by BITS Blue Team (Qualys)."
 name = "bibt-qualys"
 readme = {file = "README.md", content-type = "text/markdown"}
