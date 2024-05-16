@@ -67,7 +67,7 @@ class Client:
         _LOGGER.debug(f"Status: [{request.status_code}]")
         return request
 
-    def _fix_force_list(force_list):
+    def _fix_force_list(self, force_list):
         if isinstance(force_list, str):
             return (force_list,)
         elif isinstance(force_list, list):
