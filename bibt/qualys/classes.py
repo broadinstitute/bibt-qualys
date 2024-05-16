@@ -1,9 +1,9 @@
 import json
 import logging
 
-import glom
 import requests
 import xmltodict
+from glom import glom
 
 from .params import ASSET_GROUP_ATTRIBUTES_LIST
 from .params import DEFAULT_SCAN_RESULT_MODE
