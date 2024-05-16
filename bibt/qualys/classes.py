@@ -1,9 +1,9 @@
 import json
 import logging
 
+import glom
 import requests
 import xmltodict
-from glom import glom
 
 from .params import ASSET_GROUP_ATTRIBUTES_LIST
 from .params import DEFAULT_SCAN_RESULT_MODE
@@ -112,8 +112,10 @@ class Client:
                 force_list=force_list,
             )
 
-            resp_json_data = glom(
-                resp_json, f"{key}_LIST_OUTPUT.RESPONSE.{key}_LIST.{final_key}"
+            resp_json_data = glom.glom(
+                resp_json,
+                f"{key}_LIST_OUTPUT.RESPONSE.{key}_LIST.{final_key}",
+                skip_exc=glom.core.PathAccessError,
             )
             if not resp_json_data:
                 if len(full_resp) < 1:
@@ -127,7 +129,11 @@ class Client:
             _LOGGER.debug(f"Extending list of type {key} by {len(resp_json_data)}...")
             full_resp.extend(resp_json_data)
             params = None
-            request_url = glom(resp_json, f"{key}_LIST_OUTPUT.RESPONSE.WARNING.URL")
+            request_url = glom.glom(
+                resp_json,
+                f"{key}_LIST_OUTPUT.RESPONSE.WARNING.URL",
+                skip_exc=glom.core.PathAccessError,
+            )
         return full_resp
 
     def _make_fetch_request(self, endpoint, params={}):
@@ -180,9 +186,15 @@ class Client:
         )
         for result in all_results:
             if result["TITLE"] == title:
+                scan_state = glom.glom(
+                    result,
+                    "STATUS.STATE",
+                    skip_exc=glom.core.PathAccessError,
+                    default="N/A",
+                )
                 logging.info(
                     "Matching result found! ref: "
-                    f'[{result[ref_key]}] state: [{glom(result, "STATUS.STATE")}] '
+                    f"[{result[ref_key]}] state: [{scan_state}] "
                     f'launched: [{result["LAUNCH_DATETIME"]}]'
                 )
                 return result
@@ -507,7 +519,9 @@ class Client:
                 force_cdata=False,
                 force_list=self._fix_force_list(force_list),
             )
-            report_data = glom(report_data, QUALYS_REPORT_XML_PATH)
+            report_data = glom.glom(
+                report_data, QUALYS_REPORT_XML_PATH, skip_exc=glom.core.PathAccessError
+            )
             if not report_data:
                 report_data = []
             output_format = "JSON"
@@ -547,7 +561,9 @@ class Client:
                 request_url, headers={"Accept": "application/json"}, data=data
             )
         )
-        resp_json = glom(resp.json(), "ServiceResponse.data")
+        resp_json = glom.glom(
+            resp.json(), "ServiceResponse.data", skip_exc=glom.core.PathAccessError
+        )
         host_assets = []
         for host_asset in resp_json:
             if clean_data:
