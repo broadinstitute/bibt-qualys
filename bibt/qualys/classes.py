@@ -94,6 +94,11 @@ class Client:
         if key == "SCHEDULE_SCAN":
             final_key = "SCAN"
 
+        _LOGGER.debug(f"force_list: {force_list}")
+        if not isinstance(force_list, tuple):
+            force_list = self._fix_force_list(force_list)
+            _LOGGER.debug(f"fixed force_list: {force_list}")
+
         full_resp = []
         while request_url:
             _LOGGER.debug(f"Request URL: {request_url}")
@@ -104,7 +109,7 @@ class Client:
                 xml_attribs=False,
                 process_comments=False,
                 force_cdata=False,
-                force_list=self._fix_force_list(force_list),
+                force_list=force_list,
             )
 
             resp_json_data = glom(
